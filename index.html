@@ -26,7 +26,6 @@ background:linear-gradient(var(--line) 0 0) center/1px 100% no-repeat,linear-gra
 .cell span{background:var(--panel);padding:0 .06em;line-height:1.1}
 .rom{font-size:clamp(1.8rem,9vw,3rem);font-weight:900;letter-spacing:.03em;padding:.6rem 0;overflow-wrap:anywhere}
 .opts.kana button{font-size:1.25rem;letter-spacing:.04em}
-.say{margin-top:.8rem;background:none;border:1.5px solid var(--soft);border-radius:2rem;padding:.3rem .9rem;cursor:pointer}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:1rem 0}
 .opts button,.go{border:0;border-radius:.7rem;background:var(--btn);padding:.95rem .4rem;font-size:1.1rem;font-weight:700;cursor:pointer;overflow-wrap:anywhere}
 .opts button:hover:not(:disabled){background:var(--btnh)}
@@ -73,16 +72,14 @@ const $=id=>document.getElementById(id),app=$("app");
 let Q,i,score,streak,best,missed,done;
 function start(list){const n=Math.min(+$("len").value,list.length);Q=shuf(list).slice(0,n);i=0;score=0;streak=0;best=0;missed=[];show()}
 function pool(){const s=$("set").value;return WORDS.filter(w=>s==="all"||w.set===s)}
-function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function show(){if(i>=Q.length)return end();const w=Q[i],ans=romaji(w.k),mode=$("mode").value;done=false;
 let h=`<div class="stat"><span>Word ${i+1} of ${Q.length}</span><span>Score ${score} · Streak ${streak}</span></div>
-<div class="paper">${mode==="rev"?`<div class="rom">${ans}</div>`:`<div class="cells" style="--n:${[...w.k].length}" aria-label="${w.k}">${[...w.k].map(c=>`<div class="cell"><span>${c}</span></div>`).join("")}</div>`}<div><button class="say" id="say">Hear it</button></div></div>`;
+<div class="paper">${mode==="rev"?`<div class="rom">${ans}</div>`:`<div class="cells" style="--n:${[...w.k].length}" aria-label="${w.k}">${[...w.k].map(c=>`<div class="cell"><span>${c}</span></div>`).join("")}</div>`}</div>`;
 if(mode==="rev"){const o=shuf([w.k,...kanaD(w.k,false)]);h+=`<div class="opts kana">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
 else if(mode==="mean"){const same=shuf(WORDS.filter(x=>x.set===w.set&&x.m!==w.m)).map(x=>x.m);const o=shuf([w.m,...[...new Set(same)].slice(0,3)]);h+=`<div class="opts">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
 else if(mode==="choose"){const o=shuf([ans,...kanaD(w.k,true)]);h+=`<div class="opts">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
 else h+=`<div class="ans"><input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type the reading in romaji" aria-label="Your answer"><button class="go" id="chk">Check</button></div>`;
 h+=`<div id="fb" class="fb" aria-live="polite"></div>`;app.innerHTML=h;
-$("say").onclick=()=>say(w.k);
 if(mode!=="type"){const right=mode==="rev"?w.k:mode==="mean"?w.m:ans;app.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>judge(b.dataset.r===right,w,right,b))}
 else{const inp=$("in");inp.focus();const go=()=>{if(inp.value.trim())judge(norm(inp.value)===norm(ans),w,ans)};$("chk").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go()}}}
 function judge(ok,w,ans,btn){if(done)return;done=true;
