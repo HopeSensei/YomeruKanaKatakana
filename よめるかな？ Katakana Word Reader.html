@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>よめるかな？ Katakana Word Reader</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF0F7;--ink:#1E2340;--soft:#5E6585;--panel:#FFFFFF;--line:#7F95D1;--btn:#DCE2F2;--btnh:#C9D2EC;--ok:#2E8B57;--okbg:#D5EEDD;--bad:#C0392B;--badbg:#F8DAD5;--acc:#3B3F9E;--accfg:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171A2B;--ink:#E8EBF8;--soft:#A3A9C6;--panel:#20243A;--line:#6E83C4;--btn:#2C3250;--btnh:#384068;--ok:#7BD39B;--okbg:#21412F;--bad:#FF8F82;--badbg:#4A2622;--acc:#A9B4FF;--accfg:#14173A}}
+:root[data-theme="dark"]{--bg:#171A2B;--ink:#E8EBF8;--soft:#A3A9C6;--panel:#20243A;--line:#6E83C4;--btn:#2C3250;--btnh:#384068;--ok:#7BD39B;--okbg:#21412F;--bad:#FF8F82;--badbg:#4A2622;--acc:#A9B4FF;--accfg:#14173A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Noto Sans JP",system-ui,sans-serif;min-height:100%}
+main{max-width:34rem;margin:0 auto;padding:1rem 1rem 2rem}
+h1{font-size:1.5rem;margin:.2rem 0 .1rem;font-weight:900}
+.sub{color:var(--soft);margin:0 0 1rem;font-size:.95rem}
+.bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+select,button{font:inherit;color:var(--ink)}
+select{background:var(--btn);border:0;border-radius:.6rem;padding:.5rem .7rem}
+.stat{display:flex;justify-content:space-between;color:var(--soft);font-weight:700;margin-bottom:.6rem}
+.paper{background:var(--panel);border-radius:.4rem;padding:1.4rem .6rem;text-align:center;border:1px solid var(--line)}
+.cells{--w:min(4.6rem,calc((min(100vw,34rem) - 4.5rem)/var(--n)));display:inline-flex}
+.cell{width:var(--w);aspect-ratio:1;border:1.5px solid var(--line);margin-left:-1.5px;display:grid;place-items:center;font-size:calc(var(--w)*.66);font-weight:700;
+background:linear-gradient(var(--line) 0 0) center/1px 100% no-repeat,linear-gradient(var(--line) 0 0) center/100% 1px no-repeat}
+.cell span{background:var(--panel);padding:0 .06em;line-height:1.1}
+.rom{font-size:clamp(1.8rem,9vw,3rem);font-weight:900;letter-spacing:.03em;padding:.6rem 0;overflow-wrap:anywhere}
+.opts.kana button{font-size:1.25rem;letter-spacing:.04em}
+.say{margin-top:.8rem;background:none;border:1.5px solid var(--soft);border-radius:2rem;padding:.3rem .9rem;cursor:pointer}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:1rem 0}
+.opts button,.go{border:0;border-radius:.7rem;background:var(--btn);padding:.95rem .4rem;font-size:1.1rem;font-weight:700;cursor:pointer;overflow-wrap:anywhere}
+.opts button:hover:not(:disabled){background:var(--btnh)}
+.opts button.ok{background:var(--okbg);outline:2.5px solid var(--ok)}
+.opts button.bad{background:var(--badbg);outline:2.5px solid var(--bad)}
+.opts button:disabled{cursor:default}
+.ans{display:flex;gap:.5rem;margin:1rem 0}
+.ans input{flex:1;font:inherit;font-size:1.25rem;padding:.8rem;border-radius:.7rem;border:2px solid var(--btn);background:var(--panel);color:var(--ink);min-width:0}
+.go{background:var(--acc);color:var(--accfg);padding:.8rem 1.3rem}
+.fb{min-height:3.4rem;border-radius:.7rem;padding:.7rem .9rem;font-weight:700}
+.fb.ok{background:var(--okbg);color:var(--ok)}.fb.bad{background:var(--badbg);color:var(--bad)}
+.fb small{display:block;font-weight:400;color:var(--ink)}
+.next{display:block;width:100%;margin-top:.7rem}
+.miss{list-style:none;padding:0;margin:1rem 0;text-align:left}
+.miss li{padding:.5rem 0;border-bottom:1px solid var(--btn)}
+.big{font-size:3rem;font-weight:900;margin:.2rem 0}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<h1>よめるかな？ カタカナ</h1>
+<p class="sub">Read the word. Long vowels (ー) are written by doubling the vowel: ケーキ = keeki.</p>
+<div class="bar">
+<select id="set" aria-label="Word set"><option value="all">All words</option><option value="a">Set A (words 1-25)</option><option value="b">Set B (words 26-45)</option><option value="c">Set C (sports, words 46-69)</option></select>
+<select id="mode" aria-label="Mode"><option value="choose">See katakana, pick romaji</option><option value="mean">See katakana, pick the English meaning</option><option value="rev">See romaji, pick katakana</option><option value="type">Type the romaji</option></select>
+<select id="len" aria-label="Rounds"><option>10</option><option>20</option><option>45</option><option>69</option></select>
+</div>
+<div id="app"></div>
+</main>
+<script>
+const L="アイスクリーム|ice cream;サンドイッチ|sandwich;ハンバーガー|hamburger;チーズ|cheese;ステーキ|steak;ケーキ|cake;チョコレート|chocolate;サラダ|salad;カツカレー|katsu curry;ピザ|pizza;スパゲッティ|spaghetti;バナナ|banana;トマト|tomato;メロンソーダ|melon soda;コーンフレーク|cornflakes;ソーセージ|sausage;オレンジ|orange;レモン|lemon;パイナップル|pineapple;マンゴ|mango;レタス|lettuce;トースト|toast;ハム|ham;チキンナゲット|chicken nuggets;ポテトチップス|potato chips;ジュース|juice;コーヒー|coffee;ミルク|milk;ヨーグルト|yogurt;スープ|soup;パン|bread;アップルパイ|apple pie;ドーナツ|doughnut;ローストチキン|roast chicken;コーラ|cola;シーフード|seafood;ナイフ|knife;フォーク|fork;スプーン|spoon;バター|butter;ジャム|jam;デザート|dessert;ベジタリアン|vegetarian;ペットボトル|plastic bottle, PET bottle;プラスチック|plastic;テニス|tennis;ゴルフ|golf;サッカー|soccer;ラグビー|rugby;ホッケー|hockey;フットボール|football;スキー|skiing;スケート|skating;ボクシング|boxing;レスリング|wrestling;クリケット|cricket;バレーボール|volleyball;サーフィン|surfing;バスケットボール|basketball;サイクリング|cycling;アーチェリー|archery;スノーボード|snowboard;バドミントン|badminton;ピンポン|ping pong;カヌー|canoe;エアロビクス|aerobics;スケートボード|skateboard;マラソン|marathon;ダンス|dance";
+const WORDS=L.split(";").map((x,n)=>{const[k,m]=x.split("|");return{k,m,set:n<25?"a":n<45?"b":"c"}});
+const RM={};"アa イi ウu エe オo カka キki クku ケke コko サsa シshi スsu セse ソso タta チchi ツtsu テte トto ナna ニni ヌnu ネne ノno ハha ヒhi フfu ヘhe ホho マma ミmi ムmu メme モmo ヤya ユyu ヨyo ラra リri ルru レre ロro ワwa ヲwo ンn ガga ギgi グgu ゲge ゴgo ザza ジji ズzu ゼze ゾzo ダda デde ドdo バba ビbi ブbu ベbe ボbo パpa ピpi プpu ペpe ポpo".split(" ").forEach(p=>RM[p[0]]=p.slice(1));
+const SM={ャ:"a",ュ:"u",ョ:"o",ァ:"a",ィ:"i",ゥ:"u",ェ:"e",ォ:"o"},NO="ッーャュョァィゥェォ";
+function romaji(k){let o="",dbl=false;const c=[...k];for(let i=0;i<c.length;i++){const ch=c[i];if(ch==="ッ"){dbl=true;continue}if(ch==="ー"){o+=o.slice(-1);continue}let r=RM[ch]||"";const v=SM[c[i+1]];if(v){let s=r.slice(0,-1);if("ャュョ".includes(c[i+1])&&!["sh","ch","j"].includes(s))s+="y";r=s+v;i++}if(dbl){r=r[0]+r;dbl=false}o+=r}return o}
+const CF={シ:"ツン",ツ:"シソ",ソ:"ンリ",ン:"ソシ",ク:"タケ",タ:"クヌ",ケ:"ヲタ",コ:"ユ",ユ:"コ",ヌ:"ス",ス:"ヌ",チ:"テ",テ:"チ",ナ:"メ",メ:"ナ",ノ:"メ",マ:"ムア",ム:"マ",ア:"マ",ミ:"シ",ラ:"フ",ワ:"ウ",ウ:"ワ",フ:"ワ",ヲ:"ラ",セ:"ヒ",キ:"サ",サ:"キ",ヒ:"セ",ヘ:"ヒ",ハ:"バパ",バ:"ハパ",パ:"ハバ",ホ:"ボポ",ボ:"ホポ",ポ:"ホボ",ト:"ド",ド:"ト",カ:"ガ",ガ:"カ",ジ:"シ",ザ:"サ",ズ:"ス",ダ:"タ",デ:"テ",ビ:"ヒピ",ピ:"ヒビ",ブ:"フプ",プ:"フブ",ペ:"ヘベ",ベ:"ヘペ",ゴ:"コ",レ:"ロ",ロ:"ル",ル:"レ",リ:"ソ",モ:"ヒ",ネ:"ホ",ニ:"ミ",エ:"ユ",ヨ:"ヲ",オ:"ネ",イ:"ア"};
+const ALL=Object.keys(RM);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+function kanaD(k,wantRomaji){const o=romaji(k),out=new Set(),c=[...k];let t=0;while(out.size<3&&t++<300){const d=[...c];const idx=c.map((x,i)=>NO.includes(x)?-1:i).filter(i=>i>=0);const n=c.length>4&&Math.random()<.3?2:1;for(let j=0;j<n;j++){const i=pick(idx);d[i]=Math.random()<.8&&CF[c[i]]?pick([...CF[c[i]]]):pick(ALL)}const s=d.join(""),r=romaji(s);if(r!==o)out.add(wantRomaji?r:s)}return [...out]}
+const norm=s=>s.toLowerCase().replace(/ā/g,"aa").replace(/ī/g,"ii").replace(/ū/g,"uu").replace(/ē/g,"ee").replace(/ō/g,"oo").replace(/([aiueo])[-ー]/g,"$1$1").replace(/[^a-z]/g,"").replace(/sya/g,"sha").replace(/syu/g,"shu").replace(/syo/g,"sho").replace(/tya/g,"cha").replace(/zya|jya/g,"ja").replace(/(^|[^t])si/g,"$1shi").replace(/ti/g,"chi").replace(/(^|[^t])tu/g,"$1tsu").replace(/hu/g,"fu").replace(/zi/g,"ji").replace(/nn/g,"n");
+const $=id=>document.getElementById(id),app=$("app");
+let Q,i,score,streak,best,missed,done;
+function start(list){const n=Math.min(+$("len").value,list.length);Q=shuf(list).slice(0,n);i=0;score=0;streak=0;best=0;missed=[];show()}
+function pool(){const s=$("set").value;return WORDS.filter(w=>s==="all"||w.set===s)}
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function show(){if(i>=Q.length)return end();const w=Q[i],ans=romaji(w.k),mode=$("mode").value;done=false;
+let h=`<div class="stat"><span>Word ${i+1} of ${Q.length}</span><span>Score ${score} · Streak ${streak}</span></div>
+<div class="paper">${mode==="rev"?`<div class="rom">${ans}</div>`:`<div class="cells" style="--n:${[...w.k].length}" aria-label="${w.k}">${[...w.k].map(c=>`<div class="cell"><span>${c}</span></div>`).join("")}</div>`}<div><button class="say" id="say">Hear it</button></div></div>`;
+if(mode==="rev"){const o=shuf([w.k,...kanaD(w.k,false)]);h+=`<div class="opts kana">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
+else if(mode==="mean"){const same=shuf(WORDS.filter(x=>x.set===w.set&&x.m!==w.m)).map(x=>x.m);const o=shuf([w.m,...[...new Set(same)].slice(0,3)]);h+=`<div class="opts">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
+else if(mode==="choose"){const o=shuf([ans,...kanaD(w.k,true)]);h+=`<div class="opts">${o.map(x=>`<button data-r="${x}">${x}</button>`).join("")}</div>`}
+else h+=`<div class="ans"><input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type the reading in romaji" aria-label="Your answer"><button class="go" id="chk">Check</button></div>`;
+h+=`<div id="fb" class="fb" aria-live="polite"></div>`;app.innerHTML=h;
+$("say").onclick=()=>say(w.k);
+if(mode!=="type"){const right=mode==="rev"?w.k:mode==="mean"?w.m:ans;app.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>judge(b.dataset.r===right,w,right,b))}
+else{const inp=$("in");inp.focus();const go=()=>{if(inp.value.trim())judge(norm(inp.value)===norm(ans),w,ans)};$("chk").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go()}}}
+function judge(ok,w,ans,btn){if(done)return;done=true;
+if(ok){score++;streak++;best=Math.max(best,streak)}else{streak=0;missed.push(w)}
+app.querySelectorAll(".opts button").forEach(b=>{b.disabled=true;if(b.dataset.r===ans)b.classList.add("ok");else if(b===btn)b.classList.add("bad")});
+const inp=$("in");if(inp)inp.disabled=true,$("chk").disabled=true;
+const f=$("fb");f.className="fb "+(ok?"ok":"bad");
+f.innerHTML=`${ok?"Correct!":"Not quite. It reads"} ${w.k} = ${romaji(w.k)}<small>Meaning: ${w.m}</small><button class="go next" id="nx">${i+1<Q.length?"Next word":"See results"}</button>`;
+$("nx").focus();$("nx").onclick=()=>{i++;show()}}
+function end(){const pct=Math.round(score/Q.length*100);
+app.innerHTML=`<div class="paper"><div class="big">${score} / ${Q.length}</div><p>${pct}% correct · best streak ${best}</p>
+${missed.length?`<p><b>Words to review</b></p><ul class="miss">${missed.map(w=>`<li><b>${w.k}</b> = ${romaji(w.k)} <span style="color:var(--soft)">(${w.m})</span></li>`).join("")}</ul>`:`<p>Perfect round. Every word read correctly!</p>`}
+</div><div class="opts">${missed.length?`<button id="again2">Practise missed</button>`:""}<button id="again">New round</button></div>`;
+$("again").onclick=()=>start(pool());const m=$("again2");if(m)m.onclick=()=>start(missed.slice())}
+["set","mode","len"].forEach(id=>$(id).onchange=()=>start(pool()));
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;const n=+e.key;if(n>=1&&n<=4&&!done){const b=app.querySelectorAll(".opts button")[n-1];if(b&&!b.disabled)b.click()}});
+start(pool());
+</script>
+</body>
+</html>
